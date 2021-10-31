@@ -329,6 +329,7 @@ void ifsm_scriptdone(pid_t pid, int exitstatus)
         /* regardless of script's exit status, the interface is
            actually up now, so just make it inactive */
         info->state = ST_INACTIVE;
+    case ST_INACTIVE:  //OK if interface remains UP
         break;
 
     case ST_DOWNANDOUT:
@@ -358,7 +359,6 @@ void ifsm_scriptdone(pid_t pid, int exitstatus)
         info->state = ST_OUTING;
         break;
 
-    case ST_INACTIVE:
     case ST_ACTIVE:
     case ST_INSANE:
     case ST_DOWN:
@@ -422,7 +422,7 @@ if_info_get_interface(struct nlmsghdr *hdr, struct rtattr *attrs[])
             break;
         }
     }
-    
+
     if (i == NULL) {  //add new interface
         i = xmalloc(sizeof(*i));
         i->next = *ip;

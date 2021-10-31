@@ -91,8 +91,9 @@ handle_interface(struct nlmsghdr *hdr, void *arg)
 static void
 usage(char *progname, int exitcode)
 {
-    fprintf(stderr, "Usage: %s [-DFP] [-c config-file] [-s script-file] [-i interface] [-p pid-file]\n",
-            progname);
+    fprintf(stderr, "Usage: %s [-DFP] [-c config-file] "
+        "[-s script-file] [-i interface] [-p pid-file]\n"
+        "Revised: 10/31/21 brent@mbari.org\n", progname);
 
     fprintf(stderr, "\t-D\t\t"
             "print extra debugging messages\n");
