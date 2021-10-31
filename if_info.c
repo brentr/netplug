@@ -186,6 +186,7 @@ ifsm_flagchange(struct if_info *info, unsigned int newflags)
         if (newflags & IFF_UP) {
             switch(info->state) {
             case ST_DOWN:
+            case ST_DOWNANDOUT:
                 info->state = ST_INACTIVE;
                 break;
 
@@ -195,7 +196,6 @@ ifsm_flagchange(struct if_info *info, unsigned int newflags)
 
             default:
                 do_log(LOG_ERR, "%s: unexpected state %s for UP", info->name, statename(info->state));
-                exit(1);
             }
         } else {
             /* interface went down */
@@ -400,7 +400,7 @@ int if_info_save_interface(struct nlmsghdr *hdr, void *arg)
 struct if_info *
 if_info_get_interface(struct nlmsghdr *hdr, struct rtattr *attrs[])
 {
-    if (hdr->nlmsg_type != RTM_NEWLINK) {
+    if (hdr->nlmsg_type != RTM_NEWLINK && hdr->nlmsg_type != RTM_DELLINK) {
         return NULL;
     }
 
@@ -422,8 +422,8 @@ if_info_get_interface(struct nlmsghdr *hdr, struct rtattr *attrs[])
             break;
         }
     }
-
-    if (i == NULL) {
+    
+    if (i == NULL) {  //add new interface
         i = xmalloc(sizeof(*i));
         i->next = *ip;
         i->index = info->ifi_index;
@@ -433,6 +433,11 @@ if_info_get_interface(struct nlmsghdr *hdr, struct rtattr *attrs[])
         i->state = ST_DOWN;
         i->lastchange = 0;
         i->worker = -1;
+    }else
+      if (hdr->nlmsg_type == RTM_DELLINK) {  //remove deleted interface
+        *ip = i->next;
+        free(i);
+        return NULL;
     }
     return i;
 }
