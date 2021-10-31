@@ -164,7 +164,7 @@ kill_script(pid_t pid)
         goto done;
     }
 
-    sleep(1);
+    sleep(5);
 
     ret = waitpid(pid, &status, WNOHANG);
 
