@@ -93,7 +93,7 @@ usage(char *progname, int exitcode)
 {
     fprintf(stderr, "Usage: %s [-DFP] [-c config-file] "
         "[-s script-file] [-i interface] [-p pid-file]\n"
-        "Revised: 10/31/21 brent@mbari.org\n", progname);
+        "Revised: 4/15/22 brent@mbari.org\n", progname);
 
     fprintf(stderr, "\t-D\t\t"
             "print extra debugging messages\n");
@@ -200,7 +200,7 @@ poll_interfaces(void)
 
         memcpy(ifr.ifr_name, info->name, sizeof(ifr.ifr_name));
         if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0)
-            do_log(LOG_ERR, "%s: can't get flags: %m", info->name);
+            do_log(LOG_INFO, "%s: can't get flags: %m", info->name);
         else {
             ifsm_flagchange(info, ifr.ifr_flags);
             ifsm_flagpoll(info);
