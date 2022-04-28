@@ -186,8 +186,8 @@ ifsm_flagchange(struct if_info *info, unsigned int newflags)
         if (newflags & IFF_UP) {
             switch(info->state) {
             case ST_DOWN:
-            case ST_DOWNANDOUT:
                 info->state = ST_INACTIVE;
+            case ST_DOWNANDOUT:
                 break;
 
             case ST_PROBING:

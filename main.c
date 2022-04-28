@@ -93,7 +93,7 @@ usage(char *progname, int exitcode)
 {
     fprintf(stderr, "Usage: %s [-DFP] [-c config-file] "
         "[-s script-file] [-i interface] [-p pid-file]\n"
-        "Revised: 10/31/21 brent@mbari.org\n", progname);
+        "Revised: 4/27/22 brent@mbari.org\n", progname);
 
     fprintf(stderr, "\t-D\t\t"
             "print extra debugging messages\n");
