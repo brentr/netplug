@@ -114,18 +114,24 @@ ifsm_flagpoll(struct if_info *info)
 
     switch(info->state) {
     case ST_DOWN:
-        if ((info->flags & (IFF_UP|IFF_RUNNING)) == 0)
+        if (!(info->flags & IFF_UP))
             break;
         /* FALLTHROUGH */
     case ST_INACTIVE:
-        if (!(info->flags & IFF_UP)) {
-            assert(info->worker == -1);
-            info->worker = run_netplug_bg(info->name, "probe");
-            info->state = ST_PROBING;
-        } else if (info->flags & IFF_RUNNING) {
+        if (info->flags & IFF_UP) {
+          if (info->flags & IFF_RUNNING) {
             assert(info->worker == -1);
             info->worker = run_netplug_bg(info->name, "in");
             info->state = ST_INNING;
+          }else
+            info->state = ST_INACTIVE;
+        }else{
+          if (probe) {
+            assert(info->worker == -1);
+            info->worker = run_netplug_bg(info->name, "probe");
+            info->state = ST_PROBING;
+          }else
+            info->state = ST_DOWN;
         }
         break;
 
@@ -142,16 +148,19 @@ ifsm_flagpoll(struct if_info *info)
 
     case ST_ACTIVE:
         if (!(info->flags & IFF_RUNNING)) {
+          if (info->flags & IFF_UP) {
             assert(info->worker == -1);
             info->worker = run_netplug_bg(info->name, "out");
             info->state = ST_OUTING;
+          }else
+            info->state = ST_DOWN;
         }
         break;
 
     case ST_OUTING:
         if (!(info->flags & IFF_UP))
             info->state = ST_DOWNANDOUT;
-	break;
+        break;
 
     case ST_INSANE:
         break;
@@ -209,22 +218,25 @@ ifsm_flagchange(struct if_info *info, unsigned int newflags)
                 /* already down */
                 break;
 
-	    case ST_PROBING:
-		/* already probing - don't do anything rash */
-		break;
+            case ST_PROBING:
+		            /* already probing - don't do anything rash */
+              break;
 
-	    case ST_PROBING_UP:
-		/* well, we were up, but now we're not */
-		info->state = ST_PROBING;
-		break;
+            case ST_PROBING_UP:
+            /* well, we were up, but now we're not */
+              info->state = ST_PROBING;
+              break;
 
             default:
                 /* All other states: kill off any scripts currently
                    running, and go into the PROBING state, attempting
                    to bring it up */
                 kill_script(info->worker);
-                info->state = ST_PROBING;
-                info->worker = run_netplug_bg(info->name, "probe");
+                if (probe) {
+                  info->state = ST_PROBING;
+                  info->worker = run_netplug_bg(info->name, "probe");
+                }else
+                  info->state = ST_DOWN;
             }
         }
     }
@@ -232,12 +244,16 @@ ifsm_flagchange(struct if_info *info, unsigned int newflags)
     if (changed & IFF_RUNNING) {
         switch(info->state) {
         case ST_INACTIVE:
+          if (!probe && changed & IFF_UP)
+            info->state = ST_ACTIVE;  //suppress initial "in" event
+          else{
             assert(!(info->flags & IFF_RUNNING));
             assert(info->worker == -1);
 
             info->worker = run_netplug_bg(info->name, "in");
             info->state = ST_INNING;
-            break;
+          }
+          break;
 
         case ST_INNING:
             assert(info->flags & IFF_RUNNING);
@@ -335,9 +351,12 @@ void ifsm_scriptdone(pid_t pid, int exitstatus)
     case ST_DOWNANDOUT:
         /* we were just waiting for the out script to finish - start a
            probe script for this interface */
-        info->state = ST_PROBING;
-        assert(info->worker == -1);
-        info->worker = run_netplug_bg(info->name, "probe");
+        info->state = ST_DOWN;
+        if (probe) {
+          info->state = ST_PROBING;
+          assert(info->worker == -1);
+          info->worker = run_netplug_bg(info->name, "probe");
+        }
         break;
 
     case ST_INNING:
@@ -353,10 +372,12 @@ void ifsm_scriptdone(pid_t pid, int exitstatus)
         break;
 
     case ST_WAIT_IN:
-        assert(info->worker == -1);
-
-        info->worker = run_netplug_bg(info->name, "out");
-        info->state = ST_OUTING;
+        if (info->flags & IFF_UP) {
+          assert(info->worker == -1);
+          info->worker = run_netplug_bg(info->name, "out");
+          info->state = ST_OUTING;
+        }else
+          info->state = ST_DOWN;
         break;
 
     case ST_ACTIVE:

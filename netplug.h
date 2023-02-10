@@ -37,7 +37,7 @@ void close_on_exec(int fd);
 
 extern const char *script_file;
 
-extern int debug;
+extern int debug, probe;
 
 /* netlink interfacing */
 

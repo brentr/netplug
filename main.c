@@ -93,7 +93,7 @@ usage(char *progname, int exitcode)
 {
     fprintf(stderr, "Usage: %s [-DFP] [-c config-file] "
         "[-s script-file] [-i interface] [-p pid-file]\n"
-        "Revised: 4/27/22 brent@mbari.org\n", progname);
+        "Revised: 2/9/23 brent@mbari.org\n", progname);
 
     fprintf(stderr, "\t-D\t\t"
             "print extra debugging messages\n");
@@ -213,13 +213,13 @@ poll_interfaces(void)
 }
 
 int debug = 0;
+int probe = 1;
 
 int
 main(int argc, char *argv[])
 {
     int foreground = 0;
     int cfg_read = 0;
-    int probe = 1;
     int c;
 
     while ((c = getopt(argc, argv, "DFPc:s:hi:p:")) != EOF) {
@@ -362,7 +362,8 @@ main(int argc, char *argv[])
         int ret;
 
         /* Make sure we don't miss anything interesting */
-        poll_interfaces();
+        if (probe)
+          poll_interfaces();
 
         ret = poll(fds, sizeof(fds)/sizeof(fds[0]), -1);
 
