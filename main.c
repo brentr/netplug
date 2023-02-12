@@ -93,14 +93,14 @@ usage(char *progname, int exitcode)
 {
     fprintf(stderr, "Usage: %s [-DFP] [-c config-file] "
         "[-s script-file] [-i interface] [-p pid-file]\n"
-        "Revised: 2/9/23 brent@mbari.org\n", progname);
+        "Revised: 2/12/23 brent@mbari.org\n", progname);
 
     fprintf(stderr, "\t-D\t\t"
             "print extra debugging messages\n");
     fprintf(stderr, "\t-F\t\t"
             "run in foreground (don't become a daemon)\n");
     fprintf(stderr, "\t-P\t\t"
-            "do not autoprobe for interfaces (use with care)\n");
+            "neither autoprobe for nor poll interfaces\n");
     fprintf(stderr, "\t-c config_file\t"
             "read interface patterns from this config file\n");
     fprintf(stderr, "\t-s script_file\t"
