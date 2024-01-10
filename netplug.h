@@ -61,20 +61,11 @@ struct if_info {
     char name[16];
 
     enum ifstate {
-        ST_DOWN,                /* uninitialized */
-        ST_DOWNANDOUT,          /* went down while running out script */
-        ST_PROBING,             /* running probe script */
-        ST_PROBING_UP,          /* running probe, and interface went UP */
-        ST_INACTIVE,            /* interface inactive */
-        ST_INNING,              /* plugin script is running */
-        ST_WAIT_IN,             /* wait until plugin script is done */
-        ST_ACTIVE,              /* interface active */
-        ST_OUTING,              /* plugout script is running */
-        ST_INSANE,              /* interface seems to be flapping */
+        ST_INACTIVE,        /* interface inactive */
+        ST_ACTIVE           /* interface active */
     }           state;
 
     pid_t       worker;         /* pid of current in/out script */
-    time_t      lastchange;     /* timestamp of last state change */
 };
 
 struct if_info *if_info_get_interface(struct nlmsghdr *hdr,

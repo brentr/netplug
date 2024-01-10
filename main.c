@@ -4,6 +4,9 @@
  * Copyright 2003 PathScale, Inc.
  * Copyright 2003, 2004, 2005 Bryan O'Sullivan
  * Copyright 2003 Jeremy Fitzhardinge
+ *  Simplified/debugged:  1/9/24 brent@mbari.org
+ *    Removed concept of "probing" interfaces so downed interfaces stay down!
+ *    Reduced number of internal states from 11 to 2!!
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License,
@@ -93,18 +96,14 @@ usage(char *progname, int exitcode)
 {
     fprintf(stderr, "Usage: %s [-DFP] [-c config-file] "
         "[-s script-file] [-i interface] [-p pid-file]\n"
-        "Revised: 2/12/23 brent@mbari.org\n", progname);
+        "Revised: 1/9/24 brent@mbari.org\n", progname);
 
     fprintf(stderr, "\t-D\t\t"
             "print extra debugging messages\n");
     fprintf(stderr, "\t-F\t\t"
             "run in foreground (don't become a daemon)\n");
-    fprintf(stderr, "\t-P\t\t"
-            "neither autoprobe for nor poll interfaces\n");
     fprintf(stderr, "\t-c config_file\t"
             "read interface patterns from this config file\n");
-    fprintf(stderr, "\t-s script_file\t"
-            "script file for probing interfaces, bringing them up or down\n");
     fprintf(stderr, "\t-i interface\t"
             "only handle interfaces matching this pattern\n");
     fprintf(stderr, "\t-p pid_file\t"
@@ -158,62 +157,22 @@ child_handler(int sig, siginfo_t *info, void *v)
 {
     struct child_exit ce;
     int ret;
-    ssize_t s = 0;
 
     assert(sig == SIGCHLD);
 
     ce.pid = info->si_pid;
     ret = waitpid(info->si_pid, &ce.status, 0);
-    if (ret == info->si_pid)
-    {
-        s = write(child_handler_pipe[1], &ce, sizeof(ce));
+    if (ret == info->si_pid) {
+        ssize_t s = write(child_handler_pipe[1], &ce, sizeof(ce));
 
-	if (s == -1)
-	{
-	    do_log(LOG_ERR, "can't write into pipe");
-	    exit(1);
-	}
+	  if (s == -1) {
+	      do_log(LOG_ERR, "can't write into pipe");
+	      exit(1);
+	  }
     }
-}
-
-/* Poll the existing interface state, so we can catch any state
-   changes for which we may not have neen a netlink message. */
-static void
-poll_interfaces(void)
-{
-    static int sockfd = -1;
-
-    if (sockfd == -1) {
-        sockfd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
-        if (sockfd == -1) {
-            do_log(LOG_ERR, "can't create interface socket: %m");
-            exit(1);
-        }
-        close_on_exec(sockfd);
-    }
-
-    int pollflags(struct if_info *info) {
-        struct ifreq ifr;
-
-        if (!if_match(info->name))
-            return 0;
-
-        memcpy(ifr.ifr_name, info->name, sizeof(ifr.ifr_name));
-        if (ioctl(sockfd, SIOCGIFFLAGS, &ifr) < 0)
-            do_log(LOG_INFO, "%s: can't get flags: %m", info->name);
-        else {
-            ifsm_flagchange(info, ifr.ifr_flags);
-            ifsm_flagpoll(info);
-        }
-
-        return 0;
-    }
-
-    for_each_iface(pollflags);
 }
 
 int debug = 0;
-int probe = 1;
 
 int
 main(int argc, char *argv[])
@@ -229,9 +188,6 @@ main(int argc, char *argv[])
             break;
         case 'F':
             foreground = 1;
-            break;
-        case 'P':
-            probe = 0;
             break;
         case 'c':
             read_config(optarg);
@@ -265,10 +221,6 @@ main(int argc, char *argv[])
     if (getuid() != 0) {
         do_log(LOG_WARNING, "This daemon will not work properly unless "
                "run by root");
-    }
-
-    if (probe) {
-        probe_interfaces();
     }
 
     struct sigaction act = {
@@ -362,9 +314,6 @@ main(int argc, char *argv[])
         int ret;
 
         /* Make sure we don't miss anything interesting */
-        if (probe)
-          poll_interfaces();
-
         ret = poll(fds, sizeof(fds)/sizeof(fds[0]), -1);
 
         if (ret == -1) {
