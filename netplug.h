@@ -61,12 +61,15 @@ struct if_info {
     char name[16];
 
     enum ifstate {
+        ST_UNKNOWN,         /* interface state is not yet known */
         ST_INACTIVE,        /* interface inactive */
         ST_ACTIVE           /* interface active */
     }           state;
 
     pid_t       worker;         /* pid of current in/out script */
 };
+
+extern enum ifstate initialIfState;
 
 struct if_info *if_info_get_interface(struct nlmsghdr *hdr,
                                       struct rtattr *attrs[]);

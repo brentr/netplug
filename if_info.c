@@ -38,6 +38,7 @@ statename(enum ifstate s)
 {
     switch(s) {
 #define S(x)    case ST_##x: return #x
+        S(UNKNOWN);
         S(INACTIVE);
         S(ACTIVE);
 #undef S
@@ -108,6 +109,10 @@ ifsm_flagpoll(struct if_info *info)
     enum ifstate state = info->state;
 
     switch(state) {
+      case ST_UNKNOWN:
+        info->state = ifReady(info->flags) ? ST_ACTIVE : ST_INACTIVE;
+        return;
+
       case ST_INACTIVE:
         if (ifReady(info->flags) && info->worker == -1) {
           info->worker = run_netplug_bg(info->name, "in");
@@ -163,12 +168,12 @@ void ifsm_scriptdone(pid_t pid, int exitstatus)
     for_each_iface(find_pid);
 
     if (info == NULL) {
-        do_log(LOG_WARNING, "Unexpected child %d exited with status %d",
-               pid, exitstatus);
+        do_log(LOG_WARNING, "Unexpected child pid %d exited with status %d",
+               pid, WEXITSTATUS(exitstatus));
         return;
     }
-    do_log(LOG_INFO, "%s: state %s pid %d exited status %d",
-           info->name, statename(info->state), pid, exitstatus);
+    do_log(LOG_INFO, "%s: state %s pid %d exited with status %d",
+           info->name, statename(info->state), pid, WEXITSTATUS(exitstatus));
 
     info->worker = -1;
     ifsm_flagpoll(info);
@@ -234,7 +239,7 @@ if_info_get_interface(struct nlmsghdr *hdr, struct rtattr *attrs[])
         *ip = i;
 
         /* initialize state machine fields */
-        i->state = ST_INACTIVE;
+        i->state = initialIfState;
         i->worker = -1;
     }else
       if (hdr->nlmsg_type == RTM_DELLINK) {  //remove deleted interface
@@ -274,10 +279,3 @@ if_info_update_interface(struct nlmsghdr *hdr, struct rtattr *attrs[])
 
     return i;
 }
-
-
-/*
- * Local variables:
- * c-file-style: "stroustrup"
- * End:
- */
