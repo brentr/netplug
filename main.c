@@ -95,11 +95,13 @@ handle_interface(struct nlmsghdr *hdr, void *arg)
 static void
 usage(char *progname, int exitcode)
 {
-    fprintf(stderr, "Usage: %s [-DFP] [-c config-file] "
-        "[-s script-file] [-i interface] [-I initialState] [-p pid-file]\n"
-        "Revised: 1/9/24 brent@mbari.org\n", progname);
+    fprintf(stderr, "Usage: %s [-DFud] [-c config-file] "
+        "[-s script-file] [-i interface] [-p pid-file]\n"
+        "Revised: 1/10/24 brent@mbari.org\n", progname);
 
     fprintf(stderr,
+    "\t-u UP interfaces initially if they have carrier\n"
+    "\t-d DOWN interfaces initially if they have no carrier\n"
     "\t-D\t\t"
             "print extra debugging messages\n"
     "\t-F\t\t"
@@ -108,8 +110,6 @@ usage(char *progname, int exitcode)
             "read interface patterns from this config file\n"
     "\t-i interface\t"
             "only handle interfaces matching this pattern\n"
-    "\t-I Initially\t"
-            "0: take no action, 1: bring UP if ready, 2: take DOWN if not\n"
     "\t-p pid_file\t"
             "write daemon process ID to pid_file\n");
 
@@ -185,7 +185,7 @@ main(int argc, char *argv[])
     int cfg_read = 0;
     int c;
 
-    while ((c = getopt(argc, argv, "DFPc:s:hi:I:p:")) != EOF) {
+    while ((c = getopt(argc, argv, "udDFPc:s:hi:p:")) != EOF) {
         switch (c) {
         case 'D':
             debug = 1;
@@ -210,12 +210,11 @@ main(int argc, char *argv[])
                 exit(1);
             }
             break;
-        case 'I':
-            initialIfState = atoi(optarg);
-            if ((unsigned)initialIfState >= ST_ACTIVE) {
-                fprintf(stderr, "Invalid initial interface state\n");
-                usage(argv[0], 2);
-            }
+        case 'u':
+            initialIfState = ST_INACTIVE;
+            break;
+        case 'd':
+            initialIfState = ST_ACTIVE;
             break;
         case 'p':
             pid_file = optarg;
