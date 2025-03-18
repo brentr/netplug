@@ -144,7 +144,7 @@ static void
 exit_handler(int sig)
 {
     tidy_pid();
-    do_log(LOG_ERR, "caught signal %d - exiting", sig);
+    do_log(sig==15 ? LOG_INFO : LOG_ERR, "caught signal %d - exiting", sig);
     exit(1);
 }
 
