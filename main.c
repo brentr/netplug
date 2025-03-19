@@ -97,7 +97,7 @@ usage(char *progname, int exitcode)
 {
     fprintf(stderr, "Usage: %s [-DFud] [-c config-file] "
         "[-s script-file] [-i interface] [-p pid-file]\n"
-        "Revised: 1/10/24 brent@mbari.org\n", progname);
+        "Revised: 3/18/25 brent@mbari.org\n", progname);
 
     fprintf(stderr,
     "\t-u UP interfaces initially if they have carrier\n"
@@ -144,7 +144,7 @@ static void
 exit_handler(int sig)
 {
     tidy_pid();
-    do_log(sig==15 ? LOG_INFO : LOG_ERR, "caught signal %d - exiting", sig);
+    do_log(sig==SIGTERM ? LOG_INFO:LOG_ERR, "caught signal %d - exiting", sig);
     exit(1);
 }
 
